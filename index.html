@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="id" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>MeKPro: Konfigurator Keyboard Mechanical (Pilot: M82XU 5.0)</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <dialog id="profile-json-dialog" closedby="any" aria-labelledby="profile-json-title">
+      <div class="dialog-header">
+        <h2 id="profile-json-title">Cadangkan atau Pulihkan Profil (.mekpro.json)</h2>
+        <form method="dialog">
+          <button type="submit" value="close" class="btn-icon" aria-label="Tutup dialog">Tutup</button>
+        </form>
+      </div>
+      <p class="dialog-subtitle">
+        Ekspor konfigurasi tombol, macro, dan register hardware ke file JSON lokal agar pengaturan keyboard tetap tersimpan meskipun aplikasi bawaan pabrik sudah tidak tersedia.
+      </p>
+      <textarea
+        id="profile-json-textarea"
+        rows="12"
+        spellcheck="false"
+        placeholder='{"id": "pilot-m82xu", ...}'
+        aria-label="JSON Konfigurasi Profil Keyboard"
+      ></textarea>
+      <div class="dialog-actions">
+        <button type="button" id="btn-copy-json" class="btn-secondary">Salin JSON</button>
+        <button type="button" id="btn-download-json" class="btn-secondary">Unduh File .json</button>
+        <button type="button" id="btn-import-json-apply" class="btn-primary" autofocus>
+          Muat &amp; Terapkan JSON Ini
+        </button>
+      </div>
+    </dialog>
+
+    <dialog id="custom-board-dialog" closedby="any" aria-labelledby="custom-board-title">
+      <div class="dialog-header">
+        <h2 id="custom-board-title">Tambah Profil Keyboard Mechanical (VID / PID)</h2>
+        <form method="dialog">
+          <button type="submit" value="close" class="btn-icon" aria-label="Tutup dialog">Tutup</button>
+        </form>
+      </div>
+      <p class="dialog-subtitle">
+        Pilih chipset OEM dari daftar atau masukkan Vendor ID dan Product ID heksadesimal perangkat Anda.
+      </p>
+      <div class="form-grid">
+        <label class="field-label" for="preset-oem-select">
+          <span>Preset Chipset OEM</span>
+          <select id="preset-oem-select">
+            <option value="25a7:2420:Rexus Daxa M82X Ultimate (M82XU 5.0)">Rexus Daxa M82X Ultimate (0x25A7 : 0x2420)</option>
+            <option value="25a7:fa61:Rexus Daxa M82X Kabel USB / 2.4G">Rexus Daxa M82X Kabel / 2.4G (0x25A7 : 0xFA61)</option>
+            <option value="258a:0049:Royal Kludge RK84 / Fantech Maxfit">Royal Kludge / Fantech / Sino Wealth (0x258A : 0x0049)</option>
+            <option value="320f:5044:VortexSeries VX / GT Series (Evision)">VortexSeries VX / GT Series (0x320F : 0x5044)</option>
+            <option value="3434:0120:Keychron Seri Q / V / K Pro">Keychron Seri Q / V / K Pro (0x3434 : 0x0120)</option>
+          </select>
+        </label>
+        <label class="field-label" for="custom-board-name">
+          <span>Label Profil Keyboard</span>
+          <input type="text" id="custom-board-name" placeholder="Contoh: Keyboard Kantor 75%" />
+        </label>
+        <label class="field-label" for="custom-board-vid">
+          <span>Vendor ID (Heksadesimal)</span>
+          <input type="text" id="custom-board-vid" placeholder="0x25A7" value="0x25A7" />
+        </label>
+        <label class="field-label" for="custom-board-pid">
+          <span>Product ID (Heksadesimal)</span>
+          <input type="text" id="custom-board-pid" placeholder="0x2420" value="0x2420" />
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <form method="dialog">
+          <button type="submit" value="cancel" class="btn-secondary">Batal</button>
+        </form>
+        <button type="button" id="btn-create-custom-board" class="btn-primary" autofocus>
+          Simpan Profil Perangkat Baru
+        </button>
+      </div>
+    </dialog>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

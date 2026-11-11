@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Tauri / Rust build artifacts
+src-tauri/target/
+src-tauri/Cargo.lock
+
+# Vite / Frontend build artifacts
+dist/
+
+# OS specific
+.DS_Store
+*.swp
+*~
+Thumbs.db

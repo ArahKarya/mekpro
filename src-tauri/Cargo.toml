@@ -1,0 +1,25 @@
+[package]
+name = "mekpro"
+version = "1.0.0"
+description = "MeKPro: Mechanical Keyboard Configurator & Hybrid HID/OS Engine (Pilot: Rexus Daxa M82X Ultimate / M82XU 5.0)"
+authors = ["Arah Karya Sinergi"]
+license = "MIT"
+edition = "2021"
+
+[lib]
+name = "mekpro_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+hidapi = "2.6"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+core-graphics = "0.24"
+core-foundation = "0.10"

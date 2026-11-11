@@ -1,0 +1,22 @@
+{
+  "name": "mekpro",
+  "private": true,
+  "version": "1.0.0",
+  "description": "MeKPro: Mechanical Keyboard Configurator & Hybrid HID/OS Engine (Pilot: Rexus Daxa M82X Ultimate / M82XU 5.0)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "typescript": "~5.6.2",
+    "vite": "^6.0.3"
+  }
+}
