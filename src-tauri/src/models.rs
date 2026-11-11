@@ -2,6 +2,30 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceCapabilityReport {
+    pub model_name: String,
+    pub vendor_hex: String,
+    pub product_hex: String,
+    pub connection_mode: String,
+    pub switch_mount: String,
+    pub battery_capacity_mah: u32,
+    pub battery_level_status: String,
+    pub south_facing_led: bool,
+    pub side_led_modes: u8,
+    pub main_led_modes: u8,
+    pub rotary_encoder: bool,
+    pub hot_swappable: bool,
+    pub hardware_fn_shortcuts: Vec<HardwareFnShortcut>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HardwareFnShortcut {
+    pub key_combo: String,
+    pub category: String,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectedKeyboard {
     pub id: String,
     pub vendor_id: u32,
@@ -19,6 +43,7 @@ pub struct ConnectedKeyboard {
     pub supports_raw_hid: bool,
     pub active_os_remaps: usize,
     pub chip_family: String,
+    pub capabilities: Option<DeviceCapabilityReport>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,7 +87,9 @@ pub struct RgbHardwareConfig {
     pub primary_color: String,
     pub secondary_color: String,
     pub per_key_colors: HashMap<String, String>,
-    pub sleep_timeout_min: u16, // 0 = never, 5, 10, 30
+    pub side_led_mode: u8,      // 0..=8 (8 Mode Lampu Samping Bodi M82X)
+    pub side_led_brightness: u8,// 0..=100
+    pub sleep_timeout_min: u16, // 0 = never, 2, 5, 10, 30
     pub debounce_ms: u8,        // 2, 4, 8, 12
     pub polling_rate_hz: u16,   // 125, 250, 500, 1000
     pub nkro_enabled: bool,

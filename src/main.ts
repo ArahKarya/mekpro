@@ -8,6 +8,28 @@ import {
   makePixelPreset,
 } from "./layout_m82xu";
 
+interface HardwareFnShortcut {
+  key_combo: string;
+  category: string;
+  description: string;
+}
+
+interface DeviceCapabilityReport {
+  model_name: string;
+  vendor_hex: string;
+  product_hex: string;
+  connection_mode: string;
+  switch_mount: string;
+  battery_capacity_mah: number;
+  battery_level_status: string;
+  south_facing_led: boolean;
+  side_led_modes: number;
+  main_led_modes: number;
+  rotary_encoder: boolean;
+  hot_swappable: boolean;
+  hardware_fn_shortcuts: HardwareFnShortcut[];
+}
+
 interface ConnectedKeyboard {
   id: string;
   vendor_id: number;
@@ -25,6 +47,7 @@ interface ConnectedKeyboard {
   supports_raw_hid: boolean;
   active_os_remaps: number;
   chip_family: string;
+  capabilities?: DeviceCapabilityReport;
 }
 
 interface KeyRemapRule {
@@ -64,6 +87,8 @@ interface RgbHardwareConfig {
   primary_color: string;
   secondary_color: string;
   per_key_colors: Record<string, string>;
+  side_led_mode: number;
+  side_led_brightness: number;
   sleep_timeout_min: number;
   debounce_ms: number;
   polling_rate_hz: number;
@@ -133,7 +158,7 @@ interface ApplySyncResult {
   packet_logs: HidPacketLog[];
 }
 
-type ActiveTab = "remap" | "macro" | "rgb" | "tft" | "diagnostic";
+type ActiveTab = "remap" | "macro" | "rgb" | "tft" | "capabilities" | "diagnostic";
 type ThemeMode = "dark" | "light";
 
 const FALLBACK_PILOT_KEYBOARD: ConnectedKeyboard = {
@@ -179,6 +204,8 @@ const FALLBACK_PILOT_PROFILE: KeyboardProfile = {
       Escape: "#ff6b35",
       Enter: "#ff6b35",
     },
+    side_led_mode: 1,
+    side_led_brightness: 80,
     sleep_timeout_min: 10,
     debounce_ms: 4,
     polling_rate_hz: 1000,
@@ -1347,6 +1374,152 @@ function renderDiagnosticTab(): string {
   `;
 }
 
+function renderCapabilitiesTab(kb: ConnectedKeyboard): string {
+  const cap = kb.capabilities;
+  return `
+    <div class="workspace-grid">
+      <section class="panel-card">
+        <h2>
+          <span>1. Profil Spesifikasi Perangkat Keras (${kb.brand_model})</span>
+          <span class="mono" style="font-size:0.75rem; color: var(--text-muted)">${kb.vendor_hex}:${kb.product_hex}</span>
+        </h2>
+        <p class="panel-desc">
+          Spesifikasi arsitektur fisik yang teridentifikasi langsung pada papan ketik mekanikal Anda.
+        </p>
+
+        <div class="diagnostic-readout-list">
+          <div class="diagnostic-item">
+            <span class="diagnostic-label">Struktur Pemasangan (Mounting)</span>
+            <span class="diagnostic-val mono">${cap?.switch_mount || "Gasket Mount (PC Plate + Poron Foam)"}</span>
+          </div>
+          <div class="diagnostic-item">
+            <span class="diagnostic-label">Orientasi LED Switch</span>
+            <span class="diagnostic-val mono">${cap?.south_facing_led ? "South-Facing RGB (Anti-Interferensi Cherry Profile)" : "North-Facing"}</span>
+          </div>
+          <div class="diagnostic-item">
+            <span class="diagnostic-label">Kapasitas Baterai Internal</span>
+            <span class="diagnostic-val mono">${cap?.battery_capacity_mah || 2500} mAh Lithium Rechargeable</span>
+          </div>
+          <div class="diagnostic-item">
+            <span class="diagnostic-label">Metode Cek Persentase Baterai</span>
+            <span class="diagnostic-val mono">${cap?.battery_level_status || "Fn + Space (LED Baris Angka 1-0)"}</span>
+          </div>
+          <div class="diagnostic-item">
+            <span class="diagnostic-label">Soket Switch Hotswap</span>
+            <span class="diagnostic-val mono">${cap?.hot_swappable ? "5-Pin Universal Kailh Socket (3-Pin / 5-Pin)" : "Soldered"}</span>
+          </div>
+          <div class="diagnostic-item">
+            <span class="diagnostic-label">Rotary Encoder</span>
+            <span class="diagnostic-val mono">${cap?.rotary_encoder ? "Knurled Aluminum Knob (Volume + Push Mute)" : "None"}</span>
+          </div>
+          <div class="diagnostic-item">
+            <span class="diagnostic-label">Mode Lampu Backlight Utama</span>
+            <span class="diagnostic-val mono">${cap?.main_led_modes || 18} Preset Hardware (+ Kustom Per-Key)</span>
+          </div>
+          <div class="diagnostic-item">
+            <span class="diagnostic-label">Mode Lampu Samping Bodi</span>
+            <span class="diagnostic-val mono">${cap?.side_led_modes || 8} Mode Side LED Strip (Fn + Alt Kiri)</span>
+          </div>
+        </div>
+
+        <div class="state-box" style="margin-top: 10px;">
+          <div>
+            <strong>Panduan Pengisian Daya Baterai:</strong>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
+              Pabrikan Rexus DAXA merekomendasikan tegangan 5V / 250mA standar. Hindari penggunaan charger fast-charging (PD/QC watt tinggi) agar kesehatan sel baterai 2500mAh tetap awet.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-card">
+        <h2>
+          <span>2. Daftar Tombol Pintas Firmware Asli (Hardware Fn Shortcuts)</span>
+        </h2>
+        <p class="panel-desc">
+          Tombol kombinasi bawaan mikrokontroler keyboard yang dapat dieksekusi langsung tanpa memerlukan software.
+        </p>
+
+        <div style="max-height: 380px; overflow-y: auto;">
+          <table class="log-table">
+            <thead>
+              <tr>
+                <th style="width: 170px;">Kombinasi Fn</th>
+                <th style="width: 140px;">Kategori</th>
+                <th>Fungsi Perangkat Keras</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(cap?.hardware_fn_shortcuts || [
+                {
+                  key_combo: "Fn + Space (Tahan 3s)",
+                  category: "Baterai",
+                  description: "Cek persentase daya baterai via barisan angka 1-0 (Merah <30%, Kuning <50%, Hijau >50%)"
+                },
+                {
+                  key_combo: "Fn + \\",
+                  category: "Backlight",
+                  description: "Ganti mode pencahayaan utama South-Facing RGB (18 mode bawaan)"
+                },
+                {
+                  key_combo: "Fn + Alt Kiri",
+                  category: "Side LED",
+                  description: "Ganti efek lampu samping bodi keyboard (8 mode)"
+                },
+                {
+                  key_combo: "Fn + Panah Atas/Bawah",
+                  category: "Brightness",
+                  description: "Atur tingkat kecerahan lampu tombol (5 level kecerahan)"
+                },
+                {
+                  key_combo: "Fn + Panah Kiri/Kanan",
+                  category: "Speed",
+                  description: "Atur kecepatan animasi transisi cahaya LED (5 level kecepatan)"
+                },
+                {
+                  key_combo: "Fn + W / E / R",
+                  category: "Bluetooth",
+                  description: "Pilih slot Bluetooth BT1 / BT2 / BT3 (Tahan 3s untuk pairing)"
+                },
+                {
+                  key_combo: "Fn + T",
+                  category: "Wireless 2.4G",
+                  description: "Pindah ke mode Wireless 2.4GHz USB Dongle"
+                },
+                {
+                  key_combo: "Fn + Y",
+                  category: "Kabel USB",
+                  description: "Pindah ke mode Kabel USB Type-C (Wired Mode)"
+                },
+                {
+                  key_combo: "Fn + Win",
+                  category: "Gaming",
+                  description: "Kunci / Buka kunci tombol Windows (Win-Lock)"
+                },
+                {
+                  key_combo: "Fn + M / S",
+                  category: "OS Profile",
+                  description: "Pilih profil tata letak macOS (Fn+M) atau Windows (Fn+S)"
+                }
+              ])
+                .map(
+                  (item) => `
+                <tr>
+                  <td><code class="mono" style="font-weight:700; color: var(--brand-color);">${item.key_combo}</code></td>
+                  <td><span class="mono" style="font-size:0.75rem; color: var(--text-muted);">${item.category}</span></td>
+                  <td>${item.description}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
 function renderApp(): void {
   const root = document.getElementById("app");
   if (!root) return;
@@ -1536,8 +1709,11 @@ function renderApp(): void {
         <button type="button" class="tab-btn ${activeTab === "tft" ? "active" : ""}" data-tab-btn="tft">
           04. Layar TFT &amp; Kanvas Ikon 16x16
         </button>
+        <button type="button" class="tab-btn ${activeTab === "capabilities" ? "active" : ""}" data-tab-btn="capabilities">
+          05. Kapabilitas &amp; Manual Hardware
+        </button>
         <button type="button" class="tab-btn ${activeTab === "diagnostic" ? "active" : ""}" data-tab-btn="diagnostic">
-          05. Penguji Tombol &amp; Inspektur Protokol
+          06. Penguji Tombol &amp; Inspektur Protokol
         </button>
       </nav>
 
@@ -1546,6 +1722,7 @@ function renderApp(): void {
         ${activeTab === "macro" ? renderMacroTab(prof) : ""}
         ${activeTab === "rgb" ? renderRgbHardwareTab(prof) : ""}
         ${activeTab === "tft" ? renderTftTab(prof) : ""}
+        ${activeTab === "capabilities" ? renderCapabilitiesTab(kb) : ""}
         ${activeTab === "diagnostic" ? renderDiagnosticTab() : ""}
       </main>
     </div>

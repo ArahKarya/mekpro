@@ -1,6 +1,75 @@
-use crate::models::ConnectedKeyboard;
+use crate::models::{ConnectedKeyboard, DeviceCapabilityReport, HardwareFnShortcut};
 use std::collections::HashMap;
 use std::process::Command;
+
+pub fn get_m82xu_hardware_capabilities(transport: &str) -> DeviceCapabilityReport {
+    DeviceCapabilityReport {
+        model_name: "Rexus Daxa M82X Ultimate".to_string(),
+        vendor_hex: "0x25A7".to_string(),
+        product_hex: "0x2420".to_string(),
+        connection_mode: transport.to_string(),
+        switch_mount: "Gasket Mount (Polycarbonate PC Plate + Poron Foam)".to_string(),
+        battery_capacity_mah: 2500,
+        battery_level_status: "Fn + Space (Baris angka 1-0 menyala sesuai persentase)".to_string(),
+        south_facing_led: true,
+        side_led_modes: 8,
+        main_led_modes: 18,
+        rotary_encoder: true,
+        hot_swappable: true,
+        hardware_fn_shortcuts: vec![
+            HardwareFnShortcut {
+                key_combo: "Fn + Space (Tahan 3-5s)".to_string(),
+                category: "Baterai & Sistem".to_string(),
+                description: "Cek persentase daya baterai melalui barisan angka 1-0 (Merah <30%, Kuning <50%, Hijau >50%)".to_string(),
+            },
+            HardwareFnShortcut {
+                key_combo: "Fn + \\".to_string(),
+                category: "Lampu Backlight".to_string(),
+                description: "Ganti mode pencahayaan utama South-Facing RGB (18 mode bawaan)".to_string(),
+            },
+            HardwareFnShortcut {
+                key_combo: "Fn + Alt Kiri".to_string(),
+                category: "Lampu Samping".to_string(),
+                description: "Ganti mode efek cahaya pada bilah LED samping bodi keyboard (8 mode)".to_string(),
+            },
+            HardwareFnShortcut {
+                key_combo: "Fn + Panah Atas / Bawah".to_string(),
+                category: "Lampu Backlight".to_string(),
+                description: "Atur tingkat kecerahan lampu tombol (5 level kecerahan)".to_string(),
+            },
+            HardwareFnShortcut {
+                key_combo: "Fn + Panah Kiri / Kanan".to_string(),
+                category: "Lampu Backlight".to_string(),
+                description: "Atur kecepatan animasi transisi cahaya LED (5 level kecepatan)".to_string(),
+            },
+            HardwareFnShortcut {
+                key_combo: "Fn + W / E / R".to_string(),
+                category: "Konektivitas Nirkabel".to_string(),
+                description: "Pilih slot Bluetooth (BT1 / BT2 / BT3). Tahan 3 detik untuk masuk mode pairing".to_string(),
+            },
+            HardwareFnShortcut {
+                key_combo: "Fn + T".to_string(),
+                category: "Konektivitas Nirkabel".to_string(),
+                description: "Pindah ke mode nirkabel Wireless 2.4GHz USB Dongle".to_string(),
+            },
+            HardwareFnShortcut {
+                key_combo: "Fn + Y".to_string(),
+                category: "Koneksi Kabel".to_string(),
+                description: "Pindah ke mode kabel USB Type-C (Wired Mode)".to_string(),
+            },
+            HardwareFnShortcut {
+                key_combo: "Fn + Win".to_string(),
+                category: "Gaming Mode".to_string(),
+                description: "Kunci / Buka kunci tombol Windows (Win-Lock indicator)".to_string(),
+            },
+            HardwareFnShortcut {
+                key_combo: "Fn + M / S".to_string(),
+                category: "Sistem Operasi".to_string(),
+                description: "Beralih tata letak macOS (Fn+M) atau Windows (Fn+S)".to_string(),
+            },
+        ],
+    }
+}
 
 struct KnownBoardMeta {
     brand_model: &'static str,
@@ -23,22 +92,52 @@ fn identify_board(vid: u32, pid: u32, product_name: &str) -> KnownBoardMeta {
     }
 
     match (vid, pid) {
+        (0x258A, 0x010C) => KnownBoardMeta {
+            brand_model: "AULA F75 (Sino Wealth Tri-Mode 75%)",
+            layout_id: "m82xu_75",
+            chip_family: "Sino Wealth SH68F90 (0x258A)",
+            is_pilot: false,
+        },
+        (0x258A, 0x0102) | (0x258A, 0x0049) => KnownBoardMeta {
+            brand_model: "Royal Kludge RK84 / RK H81 / Zuoya TES84 (75%)",
+            layout_id: "m82xu_75",
+            chip_family: "Sino Wealth SH68F90 (0x258A)",
+            is_pilot: false,
+        },
         (0x258A, _) => KnownBoardMeta {
             brand_model: "Sino Wealth / Royal Kludge / Fantech Mechanical (75%)",
             layout_id: "m82xu_75",
             chip_family: "Sino Wealth SH68F90 (0x258A)",
             is_pilot: false,
         },
-        (0x3434, _) => KnownBoardMeta {
-            brand_model: "Keychron Q/V/K Pro Series (QMK/VIA)",
+        (0x320F, 0x5055) | (0x320F, 0x5088) => KnownBoardMeta {
+            brand_model: "WOBKEY Rainy 75 (Evision Gasket CNC Aluminum)",
             layout_id: "m82xu_75",
-            chip_family: "STM32 / WB32 QMK Raw HID (0x3434)",
+            chip_family: "Evision VS11K09A (0x320F)",
             is_pilot: false,
         },
         (0x320F, _) => KnownBoardMeta {
-            brand_model: "VortexSeries / Glorious / Evision RGB Board",
+            brand_model: "VortexSeries GT-65 / VX7 / Evision RGB Board",
             layout_id: "m82xu_75",
             chip_family: "Evision VS11K09A (0x320F)",
+            is_pilot: false,
+        },
+        (0x3151, _) => KnownBoardMeta {
+            brand_model: "Epomaker / Akko / MonsGeek / Yichip Tri-Mode (75%)",
+            layout_id: "m82xu_75",
+            chip_family: "Yichip YC-Series (0x3151)",
+            is_pilot: false,
+        },
+        (0x0C45, _) => KnownBoardMeta {
+            brand_model: "Redragon / Fantech Maxfit / Sonix Mechanical (75%)",
+            layout_id: "m82xu_75",
+            chip_family: "Sonix SN32F240 (0x0C45)",
+            is_pilot: false,
+        },
+        (0x3434, _) => KnownBoardMeta {
+            brand_model: "Keychron Q1 / V1 / K Pro Series (QMK/VIA)",
+            layout_id: "m82xu_75",
+            chip_family: "STM32 / WB32 QMK Raw HID (0x3434)",
             is_pilot: false,
         },
         (0x05AC, _) => KnownBoardMeta {
@@ -138,9 +237,9 @@ pub fn scan_connected_keyboards() -> Vec<ConnectedKeyboard> {
             let usage = parse_hex_or_dec(cols[4]).unwrap_or(0);
             let registry_id = cols[5].to_string();
 
-            // UsagePage 1 Usage 6 = Keyboard, or known mechanical keyboard vendor 0x25A7 / 0x258A / 0x3434 / 0x320F
+            // UsagePage 1 Usage 6 = Keyboard, or known mechanical keyboard vendor
             let is_keyboard_usage = usage_page == 1 && usage == 6;
-            let is_known_kb_vendor = matches!(vid, 0x25A7 | 0x258A | 0x3434 | 0x320F);
+            let is_known_kb_vendor = matches!(vid, 0x25A7 | 0x258A | 0x3434 | 0x320F | 0x3151 | 0x0C45 | 0x3554);
             if !is_keyboard_usage && !is_known_kb_vendor {
                 continue;
             }
@@ -179,6 +278,12 @@ pub fn scan_connected_keyboards() -> Vec<ConnectedKeyboard> {
             let active_os_remaps = count_active_os_remaps(vid, pid);
             let supports_raw_hid = transport.contains("USB") || meta.is_pilot;
 
+            let capabilities = if meta.is_pilot {
+                Some(get_m82xu_hardware_capabilities(&transport))
+            } else {
+                None
+            };
+
             seen.insert(
                 key.clone(),
                 ConnectedKeyboard {
@@ -198,6 +303,7 @@ pub fn scan_connected_keyboards() -> Vec<ConnectedKeyboard> {
                     supports_raw_hid,
                     active_os_remaps,
                     chip_family: meta.chip_family.to_string(),
+                    capabilities,
                 },
             );
         }
@@ -226,6 +332,7 @@ pub fn scan_connected_keyboards() -> Vec<ConnectedKeyboard> {
                 supports_raw_hid: true,
                 active_os_remaps: count_active_os_remaps(0x25A7, 0x2420),
                 chip_family: "Compx / Sino Wealth Tri-Mode (0x25A7)".to_string(),
+                capabilities: Some(get_m82xu_hardware_capabilities("Standby (Bluetooth LE / USB Ready)")),
             },
         );
     }
