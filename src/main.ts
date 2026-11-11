@@ -237,6 +237,7 @@ let activeTab: ActiveTab = "remap";
 let activeLayer = 0;
 let selectedKeyId = "CapsLock";
 let remapFilterCategory: "all" | "nav" | "modifier" | "media" | "function" = "all";
+let fnFilterKeyword = "";
 let currentTheme: ThemeMode =
   (localStorage.getItem("mekpro_theme") as ThemeMode) || "dark";
 
@@ -906,6 +907,9 @@ function renderKeycap(keySpec: KeyCapSpec, prof: KeyboardProfile): string {
 
 function renderRemapTab(prof: KeyboardProfile): string {
   const keySpec = getKeySpec(selectedKeyId);
+  const remapRule = prof.remaps.find(
+    (r) => r.key_id === keySpec.id && r.layer === activeLayer && r.enabled
+  );
   const filteredTargets = REMAP_TARGETS.filter(
     (t) => remapFilterCategory === "all" || t.category === remapFilterCategory
   );
@@ -914,19 +918,41 @@ function renderRemapTab(prof: KeyboardProfile): string {
     <div class="workspace-grid">
       <section class="panel-card">
         <h2>
-          <span>1. Pilih Fungsi Tujuan untuk Tombol [${keySpec.label}] (${keySpec.id})</span>
-          <span class="mono" style="font-size:0.76rem; color: var(--text-muted)">HID 0x${keySpec.hidUsage.toString(16).toUpperCase()}</span>
+          <span>1. Studio Pemetaan Tombol</span>
+          <span class="mono" style="font-size:0.75rem; color: var(--text-muted)">IOHIDEventSystem</span>
         </h2>
+
+        <div class="selected-key-hero">
+          <div class="selected-key-badge-wrap">
+            <div class="selected-key-visual-badge">${keySpec.label}</div>
+            <div class="selected-key-meta">
+              <div class="selected-key-title">Tombol Aktif: [${keySpec.label}] (${keySpec.id})</div>
+              <div class="selected-key-status">
+                Fungsi Sekarang: <strong>${remapRule ? remapRule.to_label : "Standar (" + keySpec.label + ")"}</strong>
+                <span class="mono" style="font-size:0.74rem; color: var(--text-muted); margin-left: 6px;">[HID 0x${keySpec.hidUsage.toString(16).toUpperCase()}]</span>
+              </div>
+            </div>
+          </div>
+          <div class="quick-action-row">
+            ${
+              remapRule
+                ? `<button type="button" class="btn-secondary" id="btn-quick-reset-key">Reset ke Default</button>`
+                : ""
+            }
+            <button type="button" class="btn-secondary" data-quick-assign="0x29" data-quick-label="Escape">Jadikan Escape</button>
+          </div>
+        </div>
+
         <p class="panel-desc">
-          Klik tombol pada matriks keyboard di atas, lalu pilih fungsi barunya di bawah. Pemetaan diterapkan pada <code>IOHIDEventSystem</code> macOS khusus untuk perangkat ini tanpa memengaruhi keyboard internal laptop.
+          Pilih fungsi baru dari katalog di bawah. Pemetaan akan langsung diaktifkan pada layer ${activeLayer} khusus untuk perangkat ini tanpa mengganggu keyboard laptop macOS.
         </p>
 
-        <div class="layer-pills">
-          <button type="button" class="pill-btn ${remapFilterCategory === "all" ? "active" : ""}" data-remap-cat="all">Semua Fungsi</button>
-          <button type="button" class="pill-btn ${remapFilterCategory === "nav" ? "active" : ""}" data-remap-cat="nav">Navigasi &amp; Editing</button>
-          <button type="button" class="pill-btn ${remapFilterCategory === "modifier" ? "active" : ""}" data-remap-cat="modifier">Modifier &amp; Mac</button>
-          <button type="button" class="pill-btn ${remapFilterCategory === "media" ? "active" : ""}" data-remap-cat="media">Media &amp; Audio</button>
-          <button type="button" class="pill-btn ${remapFilterCategory === "function" ? "active" : ""}" data-remap-cat="function">F13 sampai F20</button>
+        <div class="filter-pills-bar">
+          <button type="button" class="filter-pill ${remapFilterCategory === "all" ? "active" : ""}" data-remap-cat="all">Semua Fungsi</button>
+          <button type="button" class="filter-pill ${remapFilterCategory === "nav" ? "active" : ""}" data-remap-cat="nav">Navigasi &amp; Teks</button>
+          <button type="button" class="filter-pill ${remapFilterCategory === "modifier" ? "active" : ""}" data-remap-cat="modifier">Modifier &amp; Mac</button>
+          <button type="button" class="filter-pill ${remapFilterCategory === "media" ? "active" : ""}" data-remap-cat="media">Media &amp; Audio</button>
+          <button type="button" class="filter-pill ${remapFilterCategory === "function" ? "active" : ""}" data-remap-cat="function">F13 sampai F20</button>
         </div>
 
         <div class="target-key-grid">
@@ -1376,6 +1402,69 @@ function renderDiagnosticTab(): string {
 
 function renderCapabilitiesTab(kb: ConnectedKeyboard): string {
   const cap = kb.capabilities;
+  const rawShortcuts = cap?.hardware_fn_shortcuts || [
+    {
+      key_combo: "Fn + Space (Tahan 3s)",
+      category: "Baterai",
+      description: "Cek persentase daya baterai via barisan angka 1-0 (Merah <30%, Kuning <50%, Hijau >50%)"
+    },
+    {
+      key_combo: "Fn + \\",
+      category: "Backlight",
+      description: "Ganti mode pencahayaan utama South-Facing RGB (18 mode bawaan)"
+    },
+    {
+      key_combo: "Fn + Alt Kiri",
+      category: "Side LED",
+      description: "Ganti efek lampu samping bodi keyboard (8 mode)"
+    },
+    {
+      key_combo: "Fn + Panah Atas/Bawah",
+      category: "Brightness",
+      description: "Atur tingkat kecerahan lampu tombol (5 level kecerahan)"
+    },
+    {
+      key_combo: "Fn + Panah Kiri/Kanan",
+      category: "Speed",
+      description: "Atur kecepatan animasi transisi cahaya LED (5 level kecepatan)"
+    },
+    {
+      key_combo: "Fn + W / E / R",
+      category: "Bluetooth",
+      description: "Pilih slot Bluetooth BT1 / BT2 / BT3 (Tahan 3s untuk pairing)"
+    },
+    {
+      key_combo: "Fn + T",
+      category: "Wireless 2.4G",
+      description: "Pindah ke mode Wireless 2.4GHz USB Dongle"
+    },
+    {
+      key_combo: "Fn + Y",
+      category: "Kabel USB",
+      description: "Pindah ke mode Kabel USB Type-C (Wired Mode)"
+    },
+    {
+      key_combo: "Fn + Win",
+      category: "Gaming",
+      description: "Kunci / Buka kunci tombol Windows (Win-Lock)"
+    },
+    {
+      key_combo: "Fn + M / S",
+      category: "OS Profile",
+      description: "Pilih profil tata letak macOS (Fn+M) atau Windows (Fn+S)"
+    }
+  ];
+
+  const q = fnFilterKeyword.trim().toLowerCase();
+  const shortcuts = q
+    ? rawShortcuts.filter(
+        (s) =>
+          s.key_combo.toLowerCase().includes(q) ||
+          s.category.toLowerCase().includes(q) ||
+          s.description.toLowerCase().includes(q)
+      )
+    : rawShortcuts;
+
   return `
     <div class="workspace-grid">
       <section class="panel-card">
@@ -1434,11 +1523,16 @@ function renderCapabilitiesTab(kb: ConnectedKeyboard): string {
 
       <section class="panel-card">
         <h2>
-          <span>2. Daftar Tombol Pintas Firmware Asli (Hardware Fn Shortcuts)</span>
+          <span>2. Daftar Tombol Pintas Firmware Asli (${shortcuts.length} pintasan)</span>
         </h2>
         <p class="panel-desc">
           Tombol kombinasi bawaan mikrokontroler keyboard yang dapat dieksekusi langsung tanpa memerlukan software.
         </p>
+
+        <label class="field-label" for="fn-filter-input">
+          <span>Filter Pintasan Fn:</span>
+          <input type="text" id="fn-filter-input" placeholder="Ketik kata kunci (misal: baterai, bluetooth, led, mac)..." value="${fnFilterKeyword}" />
+        </label>
 
         <div style="max-height: 380px; overflow-y: auto;">
           <table class="log-table">
@@ -1450,68 +1544,21 @@ function renderCapabilitiesTab(kb: ConnectedKeyboard): string {
               </tr>
             </thead>
             <tbody>
-              ${(cap?.hardware_fn_shortcuts || [
-                {
-                  key_combo: "Fn + Space (Tahan 3s)",
-                  category: "Baterai",
-                  description: "Cek persentase daya baterai via barisan angka 1-0 (Merah <30%, Kuning <50%, Hijau >50%)"
-                },
-                {
-                  key_combo: "Fn + \\",
-                  category: "Backlight",
-                  description: "Ganti mode pencahayaan utama South-Facing RGB (18 mode bawaan)"
-                },
-                {
-                  key_combo: "Fn + Alt Kiri",
-                  category: "Side LED",
-                  description: "Ganti efek lampu samping bodi keyboard (8 mode)"
-                },
-                {
-                  key_combo: "Fn + Panah Atas/Bawah",
-                  category: "Brightness",
-                  description: "Atur tingkat kecerahan lampu tombol (5 level kecerahan)"
-                },
-                {
-                  key_combo: "Fn + Panah Kiri/Kanan",
-                  category: "Speed",
-                  description: "Atur kecepatan animasi transisi cahaya LED (5 level kecepatan)"
-                },
-                {
-                  key_combo: "Fn + W / E / R",
-                  category: "Bluetooth",
-                  description: "Pilih slot Bluetooth BT1 / BT2 / BT3 (Tahan 3s untuk pairing)"
-                },
-                {
-                  key_combo: "Fn + T",
-                  category: "Wireless 2.4G",
-                  description: "Pindah ke mode Wireless 2.4GHz USB Dongle"
-                },
-                {
-                  key_combo: "Fn + Y",
-                  category: "Kabel USB",
-                  description: "Pindah ke mode Kabel USB Type-C (Wired Mode)"
-                },
-                {
-                  key_combo: "Fn + Win",
-                  category: "Gaming",
-                  description: "Kunci / Buka kunci tombol Windows (Win-Lock)"
-                },
-                {
-                  key_combo: "Fn + M / S",
-                  category: "OS Profile",
-                  description: "Pilih profil tata letak macOS (Fn+M) atau Windows (Fn+S)"
-                }
-              ])
-                .map(
-                  (item) => `
+              ${
+                shortcuts.length === 0
+                  ? `<tr><td colspan="3" style="text-align:center; padding:18px; color:var(--text-muted);">Tidak ada pintasan Fn yang cocok dengan kata kunci "${fnFilterKeyword}".</td></tr>`
+                  : shortcuts
+                      .map(
+                        (item) => `
                 <tr>
                   <td><code class="mono" style="font-weight:700; color: var(--brand-color);">${item.key_combo}</code></td>
                   <td><span class="mono" style="font-size:0.75rem; color: var(--text-muted);">${item.category}</span></td>
                   <td>${item.description}</td>
                 </tr>
               `
-                )
-                .join("")}
+                      )
+                      .join("")
+              }
             </tbody>
           </table>
         </div>
@@ -1530,54 +1577,69 @@ function renderApp(): void {
   root.innerHTML = `
     <div class="app-shell">
       <header class="topbar">
-        <div class="brand-group">
-          <div class="brand-titles">
-            <h1>
-              <img src="/icon.png" alt="" width="24" height="24" style="border-radius: 5px; display: inline-block; vertical-align: middle;" />
-              <span>MeKPro</span>
-              <span class="wordmark-tag">PILOT: ${kb.product_name || "M82XU 5.0"} (${kb.vendor_hex || "0x25A7"}:${kb.product_hex || "0x2420"})</span>
-            </h1>
+        <div class="brand-section">
+          <div class="brand-icon-wrap">
+            <img src="/icon.png" alt="" width="32" height="32" />
           </div>
-          <p class="brand-subtitle">
-            Konfigurator Keyboard Mechanical Lintas-Koneksi (IOHIDSystem Kernel Remap + 0x25A7 Vendor HID)
-          </p>
+          <div class="brand-info">
+            <div class="brand-title-row">
+              <h1>MeKPro</h1>
+              <span class="app-version-badge">v1.0</span>
+            </div>
+            <p class="brand-tagline">Studio Konfigurasi Keyboard Mechanical</p>
+          </div>
         </div>
 
-        <div class="topbar-controls">
-          <div class="device-selector-group">
-            <select id="device-select" aria-label="Pilih Perangkat Keyboard">
+        <div class="topbar-center">
+          <div class="selector-pill-group" title="Pilih Keyboard Terhubung">
+            <span class="status-dot ${kb.transport.includes("Bluetooth") ? "ble" : "usb"}"></span>
+            <select id="device-select" class="topbar-select" aria-label="Pilih Perangkat Keyboard">
               ${keyboards
                 .map(
                   (k) => `
                 <option value="${k.id}" ${k.id === selectedKeyboardId ? "selected" : ""}>
-                  ${k.product_name} (${k.transport} : ${k.vendor_hex}:${k.product_hex})
+                  ${k.product_name} (${k.transport.includes("Bluetooth") ? "BLE" : "USB"})
                 </option>
               `
                 )
                 .join("")}
             </select>
-            <button type="button" class="btn-secondary" id="btn-rescan-kb" title="Pindai Ulang Bus HID">Pindai Ulang</button>
+            <button type="button" class="btn-icon" id="btn-rescan-kb" title="Pindai Ulang Bus HID" aria-label="Pindai Ulang">
+              Pindai
+            </button>
           </div>
 
-          <select id="profile-select" aria-label="Pilih Profil Konfigurasi">
-            ${profiles
-              .map(
-                (p, idx) => `
-              <option value="${idx}" ${idx === activeProfileIdx ? "selected" : ""}>
-                Profil: ${p.name}
-              </option>
-            `
-              )
-              .join("")}
-          </select>
+          <div class="selector-pill-group" title="Pilih Profil Aktif">
+            <select id="profile-select" class="topbar-select" aria-label="Pilih Profil Konfigurasi">
+              ${profiles
+                .map(
+                  (p, idx) => `
+                <option value="${idx}" ${idx === activeProfileIdx ? "selected" : ""}>
+                  Profil: ${p.name}
+                </option>
+              `
+                )
+                .join("")}
+            </select>
+            <button type="button" class="btn-icon" id="btn-open-json-modal" title="Ekspor atau Impor Profil JSON" aria-label="Cadangan JSON">
+              JSON
+            </button>
+          </div>
+        </div>
 
-          <button type="button" class="btn-secondary" id="btn-toggle-theme">
-            Tema: ${currentTheme === "dark" ? "Gelap" : "Terang"}
+        <div class="topbar-actions">
+          <button type="button" class="btn-secondary" id="btn-toggle-theme" title="Ubah Tema Tampilan">
+            ${currentTheme === "dark" ? "Mode Terang" : "Mode Gelap"}
           </button>
-          <button type="button" class="btn-secondary" id="btn-open-custom-board">Tambah Keyboard</button>
-          <button type="button" class="btn-secondary" id="btn-open-json-modal">Ekspor / Impor JSON</button>
-          <button type="button" class="btn-danger" id="btn-factory-reset">Reset Pabrik</button>
-          <button type="button" class="btn-primary" id="btn-apply-sync">Terapkan ke Keyboard</button>
+          <button type="button" class="btn-secondary" id="btn-open-custom-board" title="Daftarkan Keyboard Kustom Baru">
+            + Keyboard
+          </button>
+          <button type="button" class="btn-danger" id="btn-factory-reset" title="Kembalikan Pengaturan Keyboard ke Standar Pabrik">
+            Reset
+          </button>
+          <button type="button" class="btn-primary" id="btn-apply-sync" title="Terapkan Konfigurasi ke IOHIDSystem dan Hardware">
+            Terapkan ke Keyboard
+          </button>
         </div>
       </header>
 
@@ -1618,44 +1680,67 @@ function renderApp(): void {
 
       <section class="keyboard-stage" aria-label="Matriks Fisik Keyboard 75 Persen">
         <div class="stage-toolbar">
-          <div class="spec-readout mono">
-            <span><strong>${kb?.brand_model || prof.brand_model}</strong></span>
-            <span>|</span>
-            <span>Transpor: <strong>${kb?.transport || "Bluetooth Low Energy"}</strong></span>
-            <span>|</span>
-            <span>MAC/Reg: <strong>${kb?.mac_address || "F4:EE:25:F3:7B:B5"} (${kb?.registry_id || "0x100028a83"})</strong></span>
-            <span>|</span>
-            <span>Kernel Remap Aktif: <strong>${kb?.active_os_remaps || 0}</strong></span>
+          <div class="stage-telemetry-chips">
+            <div class="telemetry-chip">
+              <span class="chip-label">Model:</span>
+              <strong>${kb?.brand_model || prof.brand_model}</strong>
+            </div>
+            <div class="telemetry-chip">
+              <span class="chip-label">Koneksi:</span>
+              <span class="status-dot ${kb?.transport.includes("Bluetooth") ? "ble" : "usb"}" style="margin: 0;"></span>
+              <strong>${kb?.transport || "Bluetooth Low Energy"}</strong>
+            </div>
+            <div class="telemetry-chip">
+              <span class="chip-label">MAC / ID:</span>
+              <span>${kb?.mac_address || "F4:EE:25:F3:7B:B5"}</span>
+            </div>
+            <div class="telemetry-chip">
+              <span class="chip-label">Kernel Remap:</span>
+              <strong>${kb?.active_os_remaps || 0} aktif</strong>
+            </div>
           </div>
-          <div class="layer-pills">
-            <span style="font-size:0.8rem; font-weight:700;">Tampilan:</span>
-            <button type="button" class="pill-btn ${!is3dView ? "active" : ""}" data-view-mode="2d">Mode 2D</button>
-            <button type="button" class="pill-btn ${is3dView ? "active" : ""}" data-view-mode="3d">Mode 3D (RGB)</button>
-            <span style="color: var(--border-subtle); padding: 0 2px;">|</span>
-            <span style="font-size:0.8rem; font-weight:700;">Layer:</span>
-            <button type="button" class="pill-btn ${activeLayer === 0 ? "active" : ""}" data-layer-btn="0">Layer Dasar (0)</button>
-            <button type="button" class="pill-btn ${activeLayer === 1 ? "active" : ""}" data-layer-btn="1">Fn Layer (1)</button>
+
+          <div class="stage-view-controls">
+            <div class="segmented-control" role="group" aria-label="Pilih Mode Tampilan">
+              <button type="button" class="segmented-btn ${!is3dView ? "active" : ""}" data-view-mode="2d">
+                Mode 2D
+              </button>
+              <button type="button" class="segmented-btn ${is3dView ? "active" : ""}" data-view-mode="3d">
+                Mode 3D (RGB)
+              </button>
+            </div>
+
+            <div class="segmented-control" role="group" aria-label="Pilih Layer Keyboard">
+              <button type="button" class="segmented-btn ${activeLayer === 0 ? "active" : ""}" data-layer-btn="0">
+                Layer 0 (Dasar)
+              </button>
+              <button type="button" class="segmented-btn ${activeLayer === 1 ? "active" : ""}" data-layer-btn="1">
+                Layer 1 (Fn)
+              </button>
+            </div>
           </div>
         </div>
 
         ${
           is3dView
             ? `
-        <div class="stage-camera-bar" aria-label="Kontrol Visualisasi 3D dan Simulasi Pencahayaan RGB">
+        <div class="stage-camera-bar" aria-label="Kontrol Visualisasi 3D dan Pencahayaan RGB">
           <div class="camera-controls-left">
             <span class="led-live-badge">
               <span class="led-live-dot" id="led-live-dot"></span>
-              <span>PRATINJAU LED: ${prof.hardware.effect_mode.toUpperCase()} (${prof.hardware.brightness}%)</span>
+              <span>LED: ${prof.hardware.effect_mode.toUpperCase()} (${prof.hardware.brightness}%)</span>
             </span>
-            <button type="button" class="pill-btn ${camTiltDeg === 36 && camYawDeg === -8 ? "active" : ""}" data-cam-preset="iso">
-              3D Isometrik
-            </button>
-            <button type="button" class="pill-btn ${camTiltDeg === 28 && camYawDeg === 0 ? "active" : ""}" data-cam-preset="front">
-              3D Sudut Ketik
-            </button>
-            <button type="button" class="pill-btn ${camTiltDeg === 52 && camYawDeg === 12 ? "active" : ""}" data-cam-preset="led">
-              3D Fokus LED Bawah
-            </button>
+            <div class="segmented-control">
+              <button type="button" class="segmented-btn ${camTiltDeg === 36 && camYawDeg === -8 ? "active" : ""}" data-cam-preset="iso">
+                Isometrik
+              </button>
+              <button type="button" class="segmented-btn ${camTiltDeg === 28 && camYawDeg === 0 ? "active" : ""}" data-cam-preset="front">
+                Sudut Ketik
+              </button>
+              <button type="button" class="segmented-btn ${camTiltDeg === 52 && camYawDeg === 12 ? "active" : ""}" data-cam-preset="led">
+                Fokus Underglow
+              </button>
+            </div>
           </div>
 
           <div class="camera-controls-right">
@@ -1668,10 +1753,10 @@ function renderApp(): void {
               <input type="range" id="cam-yaw-range" min="-35" max="35" value="${camYawDeg}" style="--progress: ${Math.round(((camYawDeg + 35) / 70) * 100)}%" />
             </label>
             <button type="button" class="btn-secondary" id="btn-stage-demo-ripple">
-              Uji Ripple 3D
+              Uji Ripple
             </button>
             <button type="button" class="btn-secondary" id="btn-toggle-led-pause">
-              ${isLightingPaused ? "Jalankan Animasi LED" : "Jeda Animasi LED"}
+              ${isLightingPaused ? "Jalankan LED" : "Jeda LED"}
             </button>
           </div>
         </div>
@@ -1698,22 +1783,22 @@ function renderApp(): void {
 
       <nav class="tabs-nav" aria-label="Kategori Konfigurasi">
         <button type="button" class="tab-btn ${activeTab === "remap" ? "active" : ""}" data-tab-btn="remap">
-          01. Pemetaan Tombol &amp; Knob (${prof.remaps.length})
+          01. Pemetaan &amp; Knob (${prof.remaps.length})
         </button>
         <button type="button" class="tab-btn ${activeTab === "macro" ? "active" : ""}" data-tab-btn="macro">
-          02. Otomasi Macro &amp; Pintasan (${prof.macros.length})
+          02. Otomasi Macro (${prof.macros.length})
         </button>
         <button type="button" class="tab-btn ${activeTab === "rgb" ? "active" : ""}" data-tab-btn="rgb">
-          03. Pencahayaan RGB &amp; Parameter MCU
+          03. Pencahayaan &amp; MCU
         </button>
         <button type="button" class="tab-btn ${activeTab === "tft" ? "active" : ""}" data-tab-btn="tft">
-          04. Layar TFT &amp; Kanvas Ikon 16x16
+          04. Layar TFT 16x16
         </button>
         <button type="button" class="tab-btn ${activeTab === "capabilities" ? "active" : ""}" data-tab-btn="capabilities">
-          05. Kapabilitas &amp; Manual Hardware
+          05. Manual Fn &amp; Perangkat
         </button>
         <button type="button" class="tab-btn ${activeTab === "diagnostic" ? "active" : ""}" data-tab-btn="diagnostic">
-          06. Penguji Tombol &amp; Inspektur Protokol
+          06. Penguji &amp; Protokol
         </button>
       </nav>
 
@@ -1945,6 +2030,57 @@ function bindDynamicListeners(): void {
       renderApp();
     });
   }
+
+  document.getElementById("btn-quick-reset-key")?.addEventListener("click", () => {
+    const srcSpec = getKeySpec(selectedKeyId);
+    const idx = prof.remaps.findIndex(
+      (r) => r.key_id === srcSpec.id && r.layer === activeLayer
+    );
+    if (idx >= 0) {
+      prof.remaps.splice(idx, 1);
+      statusBannerMessage = `Pemetaan tombol [${srcSpec.label}] dikembalikan ke standar.`;
+      renderApp();
+    }
+  });
+
+  for (const btn of document.querySelectorAll<HTMLElement>("[data-quick-assign]")) {
+    btn.addEventListener("click", () => {
+      const targetUsage = Number(btn.getAttribute("data-quick-assign"));
+      const targetLabel = btn.getAttribute("data-quick-label") || "Custom";
+      const srcSpec = getKeySpec(selectedKeyId);
+      const existingIdx = prof.remaps.findIndex(
+        (r) => r.key_id === srcSpec.id && r.layer === activeLayer
+      );
+      const newRule: KeyRemapRule = {
+        id: `remap-${srcSpec.id}-${Date.now()}`,
+        key_id: srcSpec.id,
+        layer: activeLayer,
+        from_hid_usage: srcSpec.hidUsage,
+        to_hid_usage: targetUsage,
+        from_label: srcSpec.label,
+        to_label: targetLabel,
+        enabled: true,
+      };
+      if (existingIdx >= 0) {
+        prof.remaps[existingIdx] = newRule;
+      } else {
+        prof.remaps.push(newRule);
+      }
+      statusBannerMessage = `Pemetaan cepat: [${srcSpec.label}] diubah ke [${targetLabel}].`;
+      renderApp();
+    });
+  }
+
+  const fnInput = document.getElementById("fn-filter-input") as HTMLInputElement | null;
+  fnInput?.addEventListener("input", (e) => {
+    fnFilterKeyword = (e.target as HTMLInputElement).value;
+    renderApp();
+    const refreshed = document.getElementById("fn-filter-input") as HTMLInputElement | null;
+    if (refreshed) {
+      refreshed.focus();
+      refreshed.setSelectionRange(fnFilterKeyword.length, fnFilterKeyword.length);
+    }
+  });
 
   document.getElementById("knob-press-select")?.addEventListener("change", (e) => {
     prof.hardware.knob_press = (e.target as HTMLSelectElement).value;
